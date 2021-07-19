@@ -20,11 +20,22 @@ app.use(express.json());
 
 
 //taken two variables to store counts of add and update API
-var countAdd = 0;
-var countUpdate = 0;
+var tempAdd = 0;
+var tempUpdate = 0;
 
+//database schema to store counts of add and update API
+const countSchema = new mongoose.Schema({
+  countAdd:{
+    type:Number,
+    default:0
+  },
+  countUpdate:{
+    type:Number,
+    default:0
+  }
+})
 
-//database schema with COUNT fields to store counts of add and update API
+//database schema with user details and countSchema to store counts of add and update API
 const dataSchema = new mongoose.Schema({
     fName:{
       type:String,
@@ -39,14 +50,7 @@ const dataSchema = new mongoose.Schema({
       required:[true,'Please enter your age'],
       min: [10, 'Must be at least 10, got {VALUE}'],
     },
-    countAdd:{
-      type:Number,
-      default: 0
-    },
-    countUpdate:{
-      type:Number,
-      default: 0
-    }
+    count: countSchema
 })
 
 //declaring new model based on dataSchema
@@ -56,14 +60,18 @@ const Data = new mongoose.model("Data",dataSchema);
 const sampleUser = new Data ({
     fName:"John",
     lName:"Doe",
-    age:20
+    age:20,
+    count:{
+      type: countSchema,
+      default: ()=>({})
+    }
   });
 
-//sampleUser.save(); -- just to save sample data once
+//sampleUser.save();
 
 
 //get route to render current details stored in DB
-//*********** API EXECUTION TIME = 20ms ***************
+//*********** API EXECUTION TIME = 28ms ***************
 app.get("/", (req,res)=>{
     Data.find({},(err,foundData)=>{
       if (!err) {
@@ -76,18 +84,20 @@ app.get("/", (req,res)=>{
 })
 
 
-
 //put route used as ADD BUTTON - it clears present data and new details in document
-//*********** API EXECUTION TIME = 89ms ***************
+//*********** API EXECUTION TIME = 44ms ***************
 app.put("/:dataFname",(req,res)=>{
-  countAdd++;
+  tempAdd++;
   Data.update(
     {fName:req.params.dataFname},
     {
       fName:req.body.fName,
       lName:req.body.lName,
       age:req.body.age,
-      countAdd: countAdd
+      count:{
+        countAdd:tempAdd,
+        countUpdate: tempUpdate
+      }
     },
     {overwrite:true},
     (err)=>{
@@ -103,13 +113,16 @@ app.put("/:dataFname",(req,res)=>{
 
 
 //put route used as UPDATE BUTTON - used to update existing data
-//*********** API EXECUTION TIME = 46ms ***************
+//*********** API EXECUTION TIME = 24ms ***************
 app.patch("/:dataFname",(req,res)=>{
-  countUpdate++;
+  tempUpdate++;
   Data.update(
     {fName:req.params.dataFname},
     {
-      countUpdate: countUpdate
+      count:{
+        countAdd:tempAdd,
+        countUpdate : tempUpdate
+      }
     },
     (err)=>{
       if(!err){
